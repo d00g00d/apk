@@ -1,6 +1,6 @@
 {
   "repository": "d00g00d/apk",
-  "total_apps": 3,
+  "total_apps": 4,
   "apps": [
     {
       "name": "Zona",
@@ -11,7 +11,18 @@
       "size_bytes": 31183794,
       "download_url": "https://github.com/d00g00d/apk/releases/download/2/Zona_v3.0.79_pine.apk",
       "release_tag": "2",
-      "updated_at": "2026-11-24T08:20:00Z"
+      "updated_at": "2026-11-24T08:39:38Z"
+    },
+    {
+      "name": "Opera_Mini",
+      "version": "99.7.2254.2933",
+      "patched_pine": true,
+      "target_dpi": 240,
+      "file_name": "Opera_Mini_v99.7.2254.2933_pine.apk",
+      "size_bytes": 52424776,
+      "download_url": "https://github.com/d00g00d/apk/releases/download/3/Opera_Mini_v99.7.2254.2933_pine.apk",
+      "release_tag": "3",
+      "updated_at": "2026-11-24T09:03:15Z"
     },
     {
       "name": "Media_Station_X",
@@ -22,7 +33,7 @@
       "size_bytes": 4703953,
       "download_url": "https://github.com/d00g00d/apk/releases/download/1/Media_Station_X_v0.1.167_pine.apk",
       "release_tag": "1",
-      "updated_at": "2026-11-24T07:43:21Z"
+      "updated_at": "2026-11-24T08:39:43Z"
     },
     {
       "name": "Lift",
@@ -33,7 +44,7 @@
       "size_bytes": 23593384,
       "download_url": "https://github.com/d00g00d/apk/releases/download/2/Lift_v0.2.52_pine.apk",
       "release_tag": "2",
-      "updated_at": "2026-11-24T08:17:53Z"
+      "updated_at": "2026-11-24T08:39:21Z"
     }
   ]
 }
