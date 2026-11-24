@@ -31,8 +31,10 @@ jobs:
 
       - name: Install Apktool & Android Build-Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y apktool
+          sudo mkdir -p /usr/local/bin
+          sudo curl -sL https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool -o /usr/local/bin/apktool
+          sudo curl -sL https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar -o /usr/local/bin/apktool.jar
+          sudo chmod +x /usr/local/bin/apktool /usr/local/bin/apktool.jar
           BUILD_TOOLS_DIR=$(find $ANDROID_HOME/build-tools -maxdepth 1 -type d | sort -V | tail -n 1)
           echo "$BUILD_TOOLS_DIR" >> $GITHUB_PATH
 
