@@ -80,19 +80,31 @@ def patch_apk(input_apk: Path, output_apk: Path, target_dpi: str):
     work_dir = Path("apk_work")
     if work_dir.exists():
         shutil.rmtree(work_dir)
+    work_dir.mkdir()
 
     apk_obj = APK(str(input_apk))
     package_name = apk_obj.get_package()
-    print(f"Патчинг пакета: {package_name} (целевой DPI: {target_dpi})")
+    print(f"Патчинг пакета (без пересборки ресурсов): {package_name} (целевой DPI: {target_dpi})")
 
-    run_cmd(["apktool", "d", "-f", "-s", str(input_apk), "-o", str(work_dir)])
+    # 1. Распаковываем APK как обычный ZIP
+    with zipfile.ZipFile(input_apk, "r") as zf:
+        zf.extractall(work_dir)
 
+    # Удаляем старую подпись
+    meta_inf = work_dir / "META-INF"
+    if meta_inf.exists():
+        for sig_file in meta_inf.iterdir():
+            if sig_file.suffix.upper() in {".SF", ".RSA", ".DSA", ".EC", ".MF"}:
+                sig_file.unlink()
+
+    # 2. Добавляем classesN.dex
     dex_files = list(work_dir.glob("classes*.dex"))
     next_dex_num = len(dex_files) + 1
     target_dex_name = "classes.dex" if next_dex_num == 1 else f"classes{next_dex_num}.dex"
     shutil.copy(PAYLOAD_DIR / "classes_patch.dex", work_dir / target_dex_name)
     print(f"Добавлен DEX: {target_dex_name}")
 
+    # 3. Копируем нативные библиотеки Pine
     src_lib = PAYLOAD_DIR / "lib"
     dst_lib = work_dir / "lib"
     if src_lib.exists():
@@ -105,12 +117,33 @@ def patch_apk(input_apk: Path, output_apk: Path, target_dpi: str):
                         shutil.copy(so_file, target_arch / so_file.name)
                         print(f"Скопирована библиотека: {arch_dir.name}/{so_file.name}")
 
-    patch_manifest(work_dir / "AndroidManifest.xml", package_name, target_dpi)
+    # 4. Патчим бинарный AndroidManifest.xml напрямую через ManifestEditor
+    raw_manifest = work_dir / "AndroidManifest.xml"
+    patched_manifest = work_dir / "AndroidManifest_patched.xml"
+    run_cmd([
+        "java", "-jar", "/usr/local/bin/ManifestEditor.jar",
+        str(raw_manifest),
+        "-o", str(patched_manifest),
+        "-f",
+        "-aa", "extractNativeLibs=true",
+        "-md", f"pine.target_dpi={target_dpi}",
+        "-pr", f"com.store.patcher.DpiPatchProvider:{package_name}.pine.dpipatcher"
+    ])
+    shutil.move(patched_manifest, raw_manifest)
 
+    # 5. Запаковываем обратно (resources.arsc и .so сохраняем без сжатия ZIP_STORED для Android 11+)
     unsigned_apk = Path("unsigned_patched.apk")
     aligned_apk = Path("aligned_patched.apk")
-    run_cmd(["apktool", "b", str(work_dir), "-o", str(unsigned_apk)])
+    no_compress_ext = {".arsc", ".so"}
 
+    with zipfile.ZipFile(unsigned_apk, "w") as zf:
+        for file_path in work_dir.rglob("*"):
+            if file_path.is_file():
+                arcname = file_path.relative_to(work_dir).as_posix()
+                compress_type = zipfile.ZIP_STORED if file_path.suffix.lower() in no_compress_ext else zipfile.ZIP_DEFLATED
+                zf.write(file_path, arcname, compress_type=compress_type)
+
+    # 6. Выравнивание и подпись
     run_cmd(["zipalign", "-f", "-p", "4", str(unsigned_apk), str(aligned_apk)])
     run_cmd([
         "apksigner", "sign",
@@ -125,7 +158,6 @@ def patch_apk(input_apk: Path, output_apk: Path, target_dpi: str):
     shutil.rmtree(work_dir, ignore_errors=True)
     unsigned_apk.unlink(missing_ok=True)
     aligned_apk.unlink(missing_ok=True)
-
 def process_all_releases():
     resp = requests.get(f"{API_URL}/releases", headers=HEADERS)
     resp.raise_for_status()
