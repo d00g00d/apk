@@ -2,7 +2,7 @@ name: Patch APK (Pine + DPI) & Build Store JSON
 
 on:
   release:
-    types: [published, edited, deleted]
+    types: [published, created, edited, deleted, prereleased, released]
   workflow_dispatch:
     inputs:
       default_dpi:
