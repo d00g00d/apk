@@ -1,19 +1,24 @@
-name: Sync Releases & Build Store JSON
+name: Patch APK (Pine + DPI) & Build Store JSON
 
 on:
   release:
     types: [published, edited, deleted]
-  workflow_dispatch: # Позволяет запустить вручную кнопкой в Actions
+  workflow_dispatch:
+    inputs:
+      default_dpi:
+        description: "DPI по умолчанию для новых APK"
+        required: false
+        default: "240"
 
 concurrency:
   group: release-store-sync
-  cancel-in-progress: false # Очередь, чтобы параллельные загрузки не ломали store.json
+  cancel-in-progress: false
 
 jobs:
-  build-store:
+  patch-and-build-store:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Доступ на изменение релизов и коммит store.json
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -24,15 +29,36 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Apktool & Android Build-Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool
+          BUILD_TOOLS_DIR=$(find $ANDROID_HOME/build-tools -maxdepth 1 -type d | sort -V | tail -n 1)
+          echo "$BUILD_TOOLS_DIR" >> $GITHUB_PATH
+
+      - name: Install Python dependencies
         run: |
           pip install requests androguard
 
-      - name: Process releases and generate store.json
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > release.jks
+
+      - name: Patch releases and generate store.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          DEFAULT_DPI: ${{ github.event.inputs.default_dpi || '240' }}
         run: |
           python .github/scripts/process_releases.py
+
+      - name: Cleanup Keystore
+        if: always()
+        run: rm -f release.jks
 
       - name: Commit and push store.json
         run: |
@@ -40,8 +66,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add store.json
           if ! git diff --staged --quiet; then
-            git commit -m "chore: update store.json from releases"
+            git commit -m "chore: patch apks with Pine/DPI and update store.json"
             git push
           else
-            echo "No changes to store.json"
+            echo "Изменений в store.json нет"
           fi
