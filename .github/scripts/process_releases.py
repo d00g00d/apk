@@ -4,7 +4,6 @@ import json
 import shutil
 import zipfile
 import subprocess
-import xml.etree.ElementTree as ET
 import requests
 from pathlib import Path
 from androguard.core.apk import APK
@@ -52,30 +51,6 @@ def extract_metadata(file_path: Path):
         return clean_name(raw_name), version, ext
 
     return clean_name(stem_clean), "1.0.0", ext
-
-def patch_manifest(manifest_path: Path, package_name: str, target_dpi: str):
-    ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-    android_ns = "{http://schemas.android.com/apk/res/android}"
-
-    tree = ET.parse(manifest_path)
-    root = tree.getroot()
-    app_node = root.find("application")
-    if app_node is None:
-        raise RuntimeError("Тег <application> не найден в AndroidManifest.xml")
-
-    app_node.set(f"{android_ns}extractNativeLibs", "true")
-
-    meta = ET.SubElement(app_node, "meta-data")
-    meta.set(f"{android_ns}name", "pine.target_dpi")
-    meta.set(f"{android_ns}value", str(target_dpi))
-
-    provider = ET.SubElement(app_node, "provider")
-    provider.set(f"{android_ns}name", "com.store.patcher.DpiPatchProvider")
-    provider.set(f"{android_ns}authorities", f"{package_name}.pine.dpipatcher")
-    provider.set(f"{android_ns}exported", "false")
-    provider.set(f"{android_ns}initOrder", "9999")
-
-    tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
 def patch_apk(input_apk: Path, output_apk: Path, target_dpi: str):
     work_dir = Path("apk_work")
@@ -159,6 +134,7 @@ def patch_apk(input_apk: Path, output_apk: Path, target_dpi: str):
     shutil.rmtree(work_dir, ignore_errors=True)
     unsigned_apk.unlink(missing_ok=True)
     aligned_apk.unlink(missing_ok=True)
+
 def process_all_releases():
     resp = requests.get(f"{API_URL}/releases", headers=HEADERS)
     resp.raise_for_status()
@@ -194,20 +170,13 @@ def process_all_releases():
                 file_size = asset["size"]
                 is_patched = True
                 print(f"Пропуск (уже пропатчен): {asset_name}")
-            elif plain_match and not asset_name.lower().endswith(".apk"):
+            elif plain_match:
                 app_name, version, ext = plain_match.groups()
                 final_name = asset_name
                 final_url = download_url
                 file_size = asset["size"]
                 is_patched = False
                 print(f"Пропуск (уже стандартизирован): {asset_name}")
-            elif plain_match and asset_name.lower().endswith(".apk"):
-                app_name, version, ext = plain_match.groups()
-                final_name = asset_name
-                final_url = download_url
-                file_size = asset["size"]
-                is_patched = False
-                print(f"Пропуск (APK без патча): {asset_name}")
             else:
                 print(f"Обработка нового файла: {asset_name}")
                 skip_patch = "_nopatch" in asset_name.lower()
