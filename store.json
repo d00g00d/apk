@@ -1,1 +1,39 @@
-
+{
+  "repository": "d00g00d/apk",
+  "total_apps": 3,
+  "apps": [
+    {
+      "name": "Zona",
+      "version": "3.0.79",
+      "patched_pine": true,
+      "target_dpi": 240,
+      "file_name": "Zona_v3.0.79_pine.apk",
+      "size_bytes": 31183794,
+      "download_url": "https://github.com/d00g00d/apk/releases/download/2/Zona_v3.0.79_pine.apk",
+      "release_tag": "2",
+      "updated_at": "2026-11-24T08:20:00Z"
+    },
+    {
+      "name": "Media_Station_X",
+      "version": "0.1.167",
+      "patched_pine": true,
+      "target_dpi": 240,
+      "file_name": "Media_Station_X_v0.1.167_pine.apk",
+      "size_bytes": 4703953,
+      "download_url": "https://github.com/d00g00d/apk/releases/download/1/Media_Station_X_v0.1.167_pine.apk",
+      "release_tag": "1",
+      "updated_at": "2026-11-24T07:43:21Z"
+    },
+    {
+      "name": "Lift",
+      "version": "0.2.52",
+      "patched_pine": true,
+      "target_dpi": 240,
+      "file_name": "Lift_v0.2.52_pine.apk",
+      "size_bytes": 23593384,
+      "download_url": "https://github.com/d00g00d/apk/releases/download/2/Lift_v0.2.52_pine.apk",
+      "release_tag": "2",
+      "updated_at": "2026-11-24T08:17:53Z"
+    }
+  ]
+}
